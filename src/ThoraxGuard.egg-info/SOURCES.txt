@@ -4,6 +4,14 @@ src/ThoraxGuard.egg-info/SOURCES.txt
 src/ThoraxGuard.egg-info/dependency_links.txt
 src/ThoraxGuard.egg-info/requires.txt
 src/ThoraxGuard.egg-info/top_level.txt
+src/cnnClassifier/__init__.py
+src/cnnClassifier/components/__init__.py
+src/cnnClassifier/config/__init__.py
+src/cnnClassifier/config/configuration.py
+src/cnnClassifier/constants/__init__.py
+src/cnnClassifier/entity/__init__.py
+src/cnnClassifier/pipeline/__init__.py
+src/cnnClassifier/utils/__init__.py
 src/wasteDetection/__init__.py
 src/wasteDetection/components/__init__.py
 src/wasteDetection/components/data_ingestion.py
