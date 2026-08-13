@@ -9,8 +9,12 @@ def read_requirements():
     if not req_path.exists():
         return []
     lines = [l.strip() for l in req_path.read_text().splitlines()]
-    # filter out empty lines, local paths or editable markers
-    cleaned = [l for l in lines if l and not l.startswith(".") and not l.startswith("#")]
+    # Filter out empty lines, comments, and local/editable-install directives.
+    # These are valid in requirements.txt but not in install_requires.
+    cleaned = [
+        l for l in lines
+        if l and not l.startswith((".", "#", "-e", "--editable"))
+    ]
     return cleaned
 
 

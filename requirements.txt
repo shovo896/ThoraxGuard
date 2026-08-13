@@ -8,12 +8,13 @@ flask
 
 
 matplotlib 
-numpy 
-opencv-python 
+numpy>=1.26,<2
+# PyTorch 2.2.x is built against NumPy 1.x; OpenCV 5 requires NumPy 2.x.
+opencv-python==4.10.0.84
 pillow 
 PyYAML 
 requests 
-scipy 
+scipy==1.13.1
 torch 
 torchvision 
 tqdm 
@@ -25,5 +26,4 @@ ipython
 psutil 
 thop 
 
-.e
-
+-e .
