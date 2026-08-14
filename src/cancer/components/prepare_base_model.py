@@ -1,9 +1,6 @@
-import os
-import urllib.request as request
-from zipfile import ZipFile
 import tensorflow as tf
 from pathlib import Path
-from cnnClassifier.entity.config_entity import PrepareBaseModelConfig
+from cancer.entity.config_entity import PrepareBaseModelConfig
 
 
 
@@ -30,10 +27,10 @@ class PrepareBaseModel:
     def _prepare_full_model(model, classes, freeze_all, freeze_till, learning_rate):
         if freeze_all:
             for layer in model.layers:
-                model.trainable = False
+                layer.trainable = False
         elif (freeze_till is not None) and (freeze_till > 0):
             for layer in model.layers[:-freeze_till]:
-                model.trainable = False
+                layer.trainable = False
 
         flatten_in = tf.keras.layers.Flatten()(model.output)
         prediction = tf.keras.layers.Dense(
@@ -57,6 +54,9 @@ class PrepareBaseModel:
     
 
     def update_base_model(self):
+        if not hasattr(self, "model"):
+            raise ValueError("Call get_base_model() before update_base_model().")
+
         self.full_model = self._prepare_full_model(
             model=self.model,
             classes=self.config.params_classes,
@@ -71,6 +71,6 @@ class PrepareBaseModel:
 
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model):
+        path.parent.mkdir(parents=True, exist_ok=True)
         model.save(path)
-
 
