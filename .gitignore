@@ -17,4 +17,5 @@ htmlcov/
 .env
 .env.*
 *.sqlite3
+artifacts/data_manifest.json
 *.log
