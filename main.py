@@ -6,6 +6,7 @@ from cnnClassifier.pipeline.stage_1 import STAGE_NAME, DataIngestionArtifact, ma
 from cnnClassifier.utils import logger
 
 
+
 def main() -> DataIngestionArtifact:
     """Run Stage 1 and return metadata for the external CT dataset."""
     try:
@@ -20,8 +21,17 @@ def main() -> DataIngestionArtifact:
         return artifact
     except Exception:
         logger.exception("%s pipeline failed", STAGE_NAME)
-        raise
-
+        
+STAGE_NAME = "Prepare base model"
+ try:
+        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<") 
+        obj=PrepareBaseModelStage()
+        obj.main()
+        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\nx") 
+        
+    except Exception as e:
+        logger.exception(e)
+        raise e
 
 if __name__ == "__main__":
     main()
