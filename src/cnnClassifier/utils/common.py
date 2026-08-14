@@ -1,10 +1,14 @@
 import os
 from box.exceptions import BoxValueError
 import yaml
-from cnnClassifier import logger
+from cnnClassifier.utils import logger
 import json
 import joblib
-from ensure import ensure_annotations
+try:
+    from ensure import ensure_annotations
+except (ImportError, AttributeError):
+    def ensure_annotations(func):
+        return func
 from box import ConfigBox
 from pathlib import Path
 from typing import Any
@@ -139,5 +143,3 @@ def decodeImage(imgstring, fileName):
 def encodeImageIntoBase64(croppedImagePath):
     with open(croppedImagePath, "rb") as f:
         return base64.b64encode(f.read())
-
-
