@@ -1,36 +1,51 @@
-from cnnClassifier.config.configuration import ConfigurationManager
-from cnnClassifier.components.model_trainer import Training
-from cnnClassifier import logger
+"""Stage 3: train the classifier model."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from config.configuration import ConfigurationManager
+from cancer.components.model_trainer import ModelTrainer
+from cnnClassifier.utils import logger
 
 
 STAGE_NAME = "Training"
 
 
+@dataclass(frozen=True)
+class ModelTrainingArtifact:
+    trained_model_path: Path
+
 
 class ModelTrainingPipeline:
-    def __init__(self):
-        pass
+    def __init__(self, trainer: ModelTrainer | None = None) -> None:
+        if trainer is None:
+            config = ConfigurationManager().get_training_config()
+            trainer = ModelTrainer(config=config)
+        self.trainer = trainer
 
-    def main(self):
-        config = ConfigurationManager()
-        training_config = config.get_training_config()
-        training = Training(config=training_config)
-        training.get_base_model()
-        training.train_valid_generator()
-        training.train()
+    def run(self) -> ModelTrainingArtifact:
+        logger.info("%s started", STAGE_NAME)
+        self.trainer.get_base_model()
+        self.trainer.train_valid_generator()
+        self.trainer.train()
+
+        artifact = ModelTrainingArtifact(
+            trained_model_path=self.trainer.config.trained_model_path
+        )
+        logger.info("%s completed: trained_model=%s", STAGE_NAME, artifact.trained_model_path)
+        return artifact
+
+    def main(self) -> ModelTrainingArtifact:
+        return self.run()
 
 
+def main() -> ModelTrainingArtifact:
+    config = ConfigurationManager().get_training_config()
+    trainer = ModelTrainer(config=config)
+    return ModelTrainingPipeline(trainer=trainer).run()
 
-if __name__ == '__main__':
-    try:
-        logger.info(f"*******************")
-        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        obj = ModelTrainingPipeline()
-        obj.main()
-        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\nx==========x")
-    except Exception as e:
-        logger.exception(e)
-        raise e
-        
 
+if __name__ == "__main__":
+    main()
