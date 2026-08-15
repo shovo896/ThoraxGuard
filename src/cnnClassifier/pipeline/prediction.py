@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from PIL import Image
 from tensorflow import keras
@@ -32,18 +32,16 @@ CLASS_LABELS = {
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder=str(PROJECT_ROOT / "templates"),
+        static_folder=str(PROJECT_ROOT / "static"),
+    )
     CORS(app)
 
     @app.get("/")
     def index():
-        return """
-        <h2>ThoraxGuard Prediction API</h2>
-        <form action="/predict" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required />
-            <button type="submit">Predict</button>
-        </form>
-        """
+        return render_template("index.html")
 
     @app.get("/health")
     def health():
