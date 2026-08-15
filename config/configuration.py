@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cancer.entity.config_entity import DataIngestionConfig, PrepareBaseModelConfig
+from cancer.entity.config_entity import DataIngestionConfig, PrepareBaseModelConfig, TrainingConfig
 from cnnClassifier.utils.common import create_directories, read_yaml
 
 
@@ -100,4 +100,46 @@ class ConfigurationManager:
             params_include_top=self.params.INCLUDE_TOP,
             params_weights=self.params.WEIGHTS,
             params_classes=self.params.CLASSES,
+        )
+
+    def get_training_config(self) -> TrainingConfig:
+        if not self.config.get("training"):
+            raise ValueError("config.yaml must define training")
+
+        config = self.config.training
+        required_keys = {
+            "root_dir",
+            "trained_model_path",
+            "updated_base_model_path",
+            "training_data",
+        }
+        missing_keys = required_keys.difference(config.keys())
+        if missing_keys:
+            missing = ", ".join(sorted(missing_keys))
+            raise ValueError(f"training is missing required key(s): {missing}")
+
+        root_dir = self._resolve_path(config.root_dir)
+        trained_model_path = self._resolve_path(config.trained_model_path)
+        updated_base_model_path = self._resolve_path(config.updated_base_model_path)
+        training_data = self._resolve_path(config.training_data)
+
+        if not root_dir.is_relative_to(self.artifacts_root):
+            raise ValueError("training.root_dir must be inside artifacts_root")
+        if not trained_model_path.is_relative_to(root_dir):
+            raise ValueError("training.trained_model_path must be inside training.root_dir")
+        if not updated_base_model_path.is_file():
+            raise FileNotFoundError(f"Updated base model not found: {updated_base_model_path}")
+        if not training_data.is_dir():
+            raise FileNotFoundError(f"Training data directory not found: {training_data}")
+
+        create_directories([root_dir])
+        return TrainingConfig(
+            root_dir=root_dir,
+            trained_model_path=trained_model_path,
+            updated_base_model_path=updated_base_model_path,
+            training_data=training_data,
+            params_epochs=self.params.EPOCHS,
+            params_batch_size=self.params.BATCH_SIZE,
+            params_is_augmentation=self.params.AUGMENTATION,
+            params_image_size=self.params.IMAGE_SIZE,
         )
