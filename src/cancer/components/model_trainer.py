@@ -59,12 +59,17 @@ class ModelTrainer:
             **dataflow_kwargs,
         )
 
+        if self.train_generator.samples == 0:
+            raise ValueError(f"No training images found in {self.config.training_data}")
+        if self.valid_generator.samples == 0:
+            raise ValueError(f"No validation images found in {self.config.training_data}")
+
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         model.save(path)
 
-    def train(self) -> None:
+    def train(self) -> tf.keras.callbacks.History:
         if not hasattr(self, "model"):
             raise ValueError("Call get_base_model() before train().")
         if not hasattr(self, "train_generator") or not hasattr(self, "valid_generator"):
@@ -77,7 +82,7 @@ class ModelTrainer:
             self.valid_generator.samples / self.valid_generator.batch_size
         )
 
-        self.model.fit(
+        history = self.model.fit(
             self.train_generator,
             epochs=self.config.params_epochs,
             steps_per_epoch=steps_per_epoch,
@@ -86,6 +91,7 @@ class ModelTrainer:
         )
 
         self.save_model(path=self.config.trained_model_path, model=self.model)
+        return history
 
 
 Training = ModelTrainer
