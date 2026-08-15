@@ -1,0 +1,126 @@
+name: Deploy Application Docker Image to EC2 instance
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: sohai-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          test -n "${{ secrets.AWS_ACCESS_KEY_ID }}" || (echo "AWS_ACCESS_KEY_ID secret is missing" && exit 1)
+          test -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" || (echo "AWS_SECRET_ACCESS_KEY secret is missing" && exit 1)
+          test -n "${{ secrets.AWS_DEFAULT_REGION }}" || (echo "AWS_DEFAULT_REGION secret is missing" && exit 1)
+          test -n "${{ secrets.ECR_REPO }}" || (echo "ECR_REPO secret is missing" && exit 1)
+          test -n "${{ secrets.OPENAI_API_KEY }}" || (echo "OPENAI_API_KEY secret is missing" && exit 1)
+          test -n "${{ secrets.PINECONE_API_KEY }}" || (echo "PINECONE_API_KEY secret is missing" && exit 1)
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f .github/workflows/Dockerfile \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Validate required secrets
+        run: |
+          test -n "${{ secrets.AWS_ACCESS_KEY_ID }}" || (echo "AWS_ACCESS_KEY_ID secret is missing" && exit 1)
+          test -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" || (echo "AWS_SECRET_ACCESS_KEY secret is missing" && exit 1)
+          test -n "${{ secrets.AWS_DEFAULT_REGION }}" || (echo "AWS_DEFAULT_REGION secret is missing" && exit 1)
+          test -n "${{ secrets.ECR_REPO }}" || (echo "ECR_REPO secret is missing" && exit 1)
+          test -n "${{ secrets.OPENAI_API_KEY }}" || (echo "OPENAI_API_KEY secret is missing" && exit 1)
+          test -n "${{ secrets.PINECONE_API_KEY }}" || (echo "PINECONE_API_KEY secret is missing" && exit 1)
+
+      - name: Install Docker if needed
+        run: |
+          if ! command -v docker >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y docker.io
+            sudo systemctl enable --now docker
+          fi
+          if [ -S /var/run/docker.sock ]; then
+            sudo chmod 666 /var/run/docker.sock
+          fi
+          docker system prune -af || true
+          docker version
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull and run Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
+          CONTAINER_NAME: sohai
+        run: |
+          sudo systemctl stop sohai || true
+          sudo systemctl disable sohai || true
+          docker rm -f "$CONTAINER_NAME" || true
+          docker image prune -af || true
+          docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" \
+            -e PINECONE_CLOUD="${{ vars.PINECONE_CLOUD || 'aws' }}" \
+            -e PINECONE_REGION="${{ vars.PINECONE_REGION || 'us-east-1' }}" \
+            -p 8000:8000 \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Verify deployment
+        run: |
+          docker ps --filter "name=sohai"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/ >/dev/null; then
+              exit 0
+            fi
+            docker logs --tail 50 sohai || true
+            sleep 10
+          done
+          docker logs sohai || true
+          exit 1
