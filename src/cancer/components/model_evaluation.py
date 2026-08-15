@@ -1,75 +1,91 @@
-import tensorflow as tf
+"""Model evaluation component for ThoraxGuard."""
+
+from __future__ import annotations
+
 from pathlib import Path
+from urllib.parse import urlparse
+
 import mlflow
 import mlflow.keras
-from urllib.parse import urlparse
-from cnnClassifier.entity.config_entity import EvaluationConfig
-from cnnClassifier.utils.common import read_yaml, create_directories,save_json
+import tensorflow as tf
+
+from cancer.entity.config_entity import EvaluationConfig
+from cnnClassifier.utils.common import save_json
 
 
-class Evaluation:
-    def __init__(self, config: EvaluationConfig):
+class ModelEvaluation:
+    def __init__(self, config: EvaluationConfig) -> None:
         self.config = config
 
-    
-    def _valid_generator(self):
+    @staticmethod
+    def load_model(path: Path) -> tf.keras.Model:
+        if not path.is_file():
+            raise FileNotFoundError(f"Trained model not found: {path}")
+        return tf.keras.models.load_model(path)
 
-        datagenerator_kwargs = dict(
-            rescale = 1./255,
-            validation_split=0.30
-        )
-
-        dataflow_kwargs = dict(
-            target_size=self.config.params_image_size[:-1],
-            batch_size=self.config.params_batch_size,
-            interpolation="bilinear"
-        )
+    def valid_generator(self) -> None:
+        datagenerator_kwargs = {
+            "rescale": 1.0 / 255,
+            "validation_split": 0.20,
+        }
+        dataflow_kwargs = {
+            "target_size": tuple(self.config.params_image_size[:-1]),
+            "batch_size": self.config.params_batch_size,
+            "interpolation": "bilinear",
+            "class_mode": "categorical",
+        }
 
         valid_datagenerator = tf.keras.preprocessing.image.ImageDataGenerator(
             **datagenerator_kwargs
         )
-
-        self.valid_generator = valid_datagenerator.flow_from_directory(
+        self.valid_generator_obj = valid_datagenerator.flow_from_directory(
             directory=self.config.training_data,
             subset="validation",
             shuffle=False,
-            **dataflow_kwargs
+            **dataflow_kwargs,
         )
 
+        if self.valid_generator_obj.samples == 0:
+            raise ValueError(f"No validation images found in {self.config.training_data}")
 
-    @staticmethod
-    def load_model(path: Path) -> tf.keras.Model:
-        return tf.keras.models.load_model(path)
-    
-
-    def evaluation(self):
+    def evaluation(self) -> dict[str, float]:
         self.model = self.load_model(self.config.path_of_model)
-        self._valid_generator()
-        self.score = self.model.evaluate(self.valid_generator)
+        self.valid_generator()
+
+        loss, accuracy = self.model.evaluate(self.valid_generator_obj)
+        self.score = {
+            "loss": float(loss),
+            "accuracy": float(accuracy),
+        }
         self.save_score()
+        return self.score
 
-    def save_score(self):
-        scores = {"loss": self.score[0], "accuracy": self.score[1]}
-        save_json(path=Path("scores.json"), data=scores)
+    def save_score(self) -> None:
+        if not hasattr(self, "score"):
+            raise ValueError("Call evaluation() before save_score().")
 
-    
-    def log_into_mlflow(self):
-        mlflow.set_registry_uri(self.config.mlflow_uri)
+        self.config.scores_file.parent.mkdir(parents=True, exist_ok=True)
+        save_json(path=self.config.scores_file, data=self.score)
+
+    def log_into_mlflow(self) -> None:
+        if not hasattr(self, "model") or not hasattr(self, "score"):
+            self.evaluation()
+
+        mlflow.set_tracking_uri(self.config.mlflow_uri)
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-        
+
         with mlflow.start_run():
             mlflow.log_params(self.config.all_params)
-            mlflow.log_metrics(
-                {"loss": self.score[0], "accuracy": self.score[1]}
-            )
-            # Model registry does not work with file store
-            if tracking_url_type_store != "file":
+            mlflow.log_metrics(self.score)
 
-                # Register the model
-                # There are other ways to use the Model Registry, which depends on the use case,
-                # please refer to the doc for more information:
-                # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-                mlflow.keras.log_model(self.model, "model", registered_model_name="VGG16Model")
+            if tracking_url_type_store != "file":
+                mlflow.keras.log_model(
+                    self.model,
+                    "model",
+                    registered_model_name="VGG16Model",
+                )
             else:
                 mlflow.keras.log_model(self.model, "model")
 
+
+Evaluation = ModelEvaluation

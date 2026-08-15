@@ -49,8 +49,10 @@ class TrainingConfig:
 class EvaluationConfig:
     """Configuration needed to evaluate and log the trained model."""
 
+    root_dir: Path
     path_of_model: Path
     training_data: Path
+    scores_file: Path
     all_params: dict[str, Any]
     mlflow_uri: str
     params_image_size: list[int]

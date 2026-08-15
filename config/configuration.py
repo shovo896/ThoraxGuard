@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cancer.entity.config_entity import DataIngestionConfig, PrepareBaseModelConfig, TrainingConfig
+from cancer.entity.config_entity import (
+    DataIngestionConfig,
+    EvaluationConfig,
+    PrepareBaseModelConfig,
+    TrainingConfig,
+)
 from cnnClassifier.utils.common import create_directories, read_yaml
 
 
@@ -142,4 +147,47 @@ class ConfigurationManager:
             params_batch_size=self.params.BATCH_SIZE,
             params_is_augmentation=self.params.AUGMENTATION,
             params_image_size=self.params.IMAGE_SIZE,
+        )
+
+    def get_evaluation_config(self) -> EvaluationConfig:
+        if not self.config.get("evaluation"):
+            raise ValueError("config.yaml must define evaluation")
+
+        config = self.config.evaluation
+        required_keys = {
+            "root_dir",
+            "path_of_model",
+            "training_data",
+            "scores_file",
+            "mlflow_uri",
+        }
+        missing_keys = required_keys.difference(config.keys())
+        if missing_keys:
+            missing = ", ".join(sorted(missing_keys))
+            raise ValueError(f"evaluation is missing required key(s): {missing}")
+
+        root_dir = self._resolve_path(config.root_dir)
+        path_of_model = self._resolve_path(config.path_of_model)
+        training_data = self._resolve_path(config.training_data)
+        scores_file = self._resolve_path(config.scores_file)
+
+        if not root_dir.is_relative_to(self.artifacts_root):
+            raise ValueError("evaluation.root_dir must be inside artifacts_root")
+        if not scores_file.is_relative_to(root_dir):
+            raise ValueError("evaluation.scores_file must be inside evaluation.root_dir")
+        if not path_of_model.is_file():
+            raise FileNotFoundError(f"Trained model not found: {path_of_model}")
+        if not training_data.is_dir():
+            raise FileNotFoundError(f"Evaluation data directory not found: {training_data}")
+
+        create_directories([root_dir])
+        return EvaluationConfig(
+            root_dir=root_dir,
+            path_of_model=path_of_model,
+            training_data=training_data,
+            scores_file=scores_file,
+            mlflow_uri=config.mlflow_uri,
+            all_params=dict(self.params),
+            params_image_size=self.params.IMAGE_SIZE,
+            params_batch_size=self.params.BATCH_SIZE,
         )
