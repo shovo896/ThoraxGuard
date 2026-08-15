@@ -74,6 +74,9 @@ jobs:
             sudo apt-get install -y docker.io
             sudo systemctl enable --now docker
           fi
+          if [ -S /var/run/docker.sock ]; then
+            sudo chmod 666 /var/run/docker.sock
+          fi
           docker version
 
       - name: Configure AWS credentials
@@ -94,7 +97,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           docker rm -f "$CONTAINER_NAME" || true
-          docker image prune -af || true
+          docker image prune -f || true
           docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker run -d \
             --name "$CONTAINER_NAME" \
