@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import mlflow
 import mlflow.keras
-import tensorflow as tf
+from tensorflow import keras
 
 from cancer.entity.config_entity import EvaluationConfig
 from cnnClassifier.utils.common import save_json
@@ -18,10 +18,10 @@ class ModelEvaluation:
         self.config = config
 
     @staticmethod
-    def load_model(path: Path) -> tf.keras.Model:
+    def load_model(path: Path) -> keras.Model:
         if not path.is_file():
             raise FileNotFoundError(f"Trained model not found: {path}")
-        return tf.keras.models.load_model(path)
+        return keras.models.load_model(path)
 
     def valid_generator(self) -> None:
         datagenerator_kwargs = {
@@ -35,7 +35,7 @@ class ModelEvaluation:
             "class_mode": "categorical",
         }
 
-        valid_datagenerator = tf.keras.preprocessing.image.ImageDataGenerator(
+        valid_datagenerator = keras.preprocessing.image.ImageDataGenerator(
             **datagenerator_kwargs
         )
         self.valid_generator_obj = valid_datagenerator.flow_from_directory(
