@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
 import mlflow
-import mlflow.keras
 from tensorflow import keras
 
 from cancer.entity.config_entity import EvaluationConfig
@@ -67,25 +67,33 @@ class ModelEvaluation:
         self.config.scores_file.parent.mkdir(parents=True, exist_ok=True)
         save_json(path=self.config.scores_file, data=self.score)
 
-    def log_into_mlflow(self) -> None:
+    def log_into_mlflow(self) -> str:
+        if urlparse(self.config.mlflow_uri).scheme in {"http", "https"}:
+            username = os.environ.get("MLFLOW_TRACKING_USERNAME")
+            password = os.environ.get("MLFLOW_TRACKING_PASSWORD")
+            if not username or not password:
+                raise EnvironmentError(
+                    "MLflow remote logging needs MLFLOW_TRACKING_USERNAME and "
+                    "MLFLOW_TRACKING_PASSWORD. Set your DagsHub username/token first."
+                )
+
         if not hasattr(self, "model") or not hasattr(self, "score"):
             self.evaluation()
 
         mlflow.set_tracking_uri(self.config.mlflow_uri)
+        mlflow.set_experiment("Default")
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
 
-        with mlflow.start_run():
+        with mlflow.start_run(run_name="model_evaluation") as run:
             mlflow.log_params(self.config.all_params)
             mlflow.log_metrics(self.score)
 
             if tracking_url_type_store != "file":
-                mlflow.keras.log_model(
-                    self.model,
-                    "model",
-                    registered_model_name="VGG16Model",
-                )
+                mlflow.log_artifact(str(self.config.scores_file))
             else:
-                mlflow.keras.log_model(self.model, "model")
+                mlflow.log_artifact(str(self.config.scores_file))
+
+            return run.info.run_id
 
 
 Evaluation = ModelEvaluation

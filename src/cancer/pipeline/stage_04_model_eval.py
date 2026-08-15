@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,10 +51,22 @@ class ModelEvaluationPipeline:
         return artifact
 
     def main(self) -> ModelEvaluationArtifact:
-        return self.run()
+        return self.run(log_to_mlflow=should_log_to_mlflow())
 
 
-def main(log_to_mlflow: bool = False) -> ModelEvaluationArtifact:
+def should_log_to_mlflow() -> bool:
+    return os.environ.get("LOG_TO_MLFLOW", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+    }
+
+
+def main(log_to_mlflow: bool | None = None) -> ModelEvaluationArtifact:
+    if log_to_mlflow is None:
+        log_to_mlflow = should_log_to_mlflow()
+
     config = ConfigurationManager().get_evaluation_config()
     evaluator = ModelEvaluation(config=config)
     return ModelEvaluationPipeline(evaluator=evaluator).run(log_to_mlflow=log_to_mlflow)
