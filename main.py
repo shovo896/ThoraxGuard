@@ -12,6 +12,11 @@ from cancer.pipeline.stage_03_model_trainer import (
     ModelTrainingArtifact,
     main as run_model_training,
 )
+from cancer.pipeline.stage_04_model_eval import (
+    STAGE_NAME as MODEL_EVALUATION_STAGE,
+    ModelEvaluationArtifact,
+    main as run_model_evaluation,
+)
 from cnnClassifier.pipeline.stage_1 import (
     STAGE_NAME as DATA_INGESTION_STAGE,
     DataIngestionArtifact,
@@ -27,13 +32,19 @@ def _run_stage(stage_name: str, stage_callable):
     return artifact
 
 
-def main() -> tuple[DataIngestionArtifact, PrepareBaseModelArtifact, ModelTrainingArtifact]:
+def main() -> tuple[
+    DataIngestionArtifact,
+    PrepareBaseModelArtifact,
+    ModelTrainingArtifact,
+    ModelEvaluationArtifact,
+]:
     """Run the configured ThoraxGuard stages in order."""
     try:
         data_artifact = _run_stage(DATA_INGESTION_STAGE, run_data_ingestion)
         model_artifact = _run_stage(PREPARE_BASE_MODEL_STAGE, run_prepare_base_model)
         training_artifact = _run_stage(TRAINING_STAGE, run_model_training)
-        return data_artifact, model_artifact, training_artifact
+        evaluation_artifact = _run_stage(MODEL_EVALUATION_STAGE, run_model_evaluation)
+        return data_artifact, model_artifact, training_artifact, evaluation_artifact
     except Exception:
         logger.exception("Pipeline failed")
         raise
@@ -42,4 +53,3 @@ def main() -> tuple[DataIngestionArtifact, PrepareBaseModelArtifact, ModelTraini
 if __name__ == "__main__":
     main()
     
-
