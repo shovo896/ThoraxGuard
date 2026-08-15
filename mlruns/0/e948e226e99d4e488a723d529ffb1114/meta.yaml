@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/Shared/ThoraxGuard/mlruns/0/e948e226e99d4e488a723d529ffb1114/artifacts
+end_time: 1786786106598
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e948e226e99d4e488a723d529ffb1114
+run_name: thoraxguard-local-smoke
+run_uuid: e948e226e99d4e488a723d529ffb1114
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1786786106565
+status: 3
+tags: []
+user_id: imac
