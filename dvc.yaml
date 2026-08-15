@@ -37,6 +37,7 @@ stages:
     deps:
       - config/config.yaml
       - params.yaml
+      - artifacts/data_manifest.json
       - artifacts/prepare_base_model/base_model_updated.keras
       - src/cancer/components/model_trainer.py
       - src/cancer/entity/config_entity.py
@@ -57,6 +58,7 @@ stages:
     deps:
       - config/config.yaml
       - params.yaml
+      - artifacts/data_manifest.json
       - artifacts/training/model.keras
       - src/cancer/components/model_evaluation.py
       - src/cancer/entity/config_entity.py
