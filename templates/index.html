@@ -4,10 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ThoraxGuard | CT Scan Classifier</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
-    />
+    <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
     <main class="page-shell">
@@ -68,10 +65,12 @@
       const message = document.getElementById("message");
       const statusPill = document.getElementById("status-pill");
       const predictButton = document.getElementById("predict-button");
+      const API_BASE =
+        window.location.port === "5500" ? "http://127.0.0.1:8080" : "";
 
       const formatPercent = (value) => `${(value * 100).toFixed(2)}%`;
 
-      fetch("/health")
+      fetch(`${API_BASE}/health`)
         .then((response) => response.json())
         .then((data) => {
           statusPill.textContent = data.model_exists
@@ -115,7 +114,7 @@
         message.textContent = "";
 
         try {
-          const response = await fetch("/predict", {
+          const response = await fetch(`${API_BASE}/predict`, {
             method: "POST",
             body: formData,
           });
