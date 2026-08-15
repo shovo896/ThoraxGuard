@@ -29,3 +29,7 @@ COPY artifacts/training/model.keras ./artifacts/training/model.keras
 EXPOSE 8080
 
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --timeout 180 app:app"]
+
+
+
+

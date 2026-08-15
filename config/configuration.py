@@ -11,7 +11,7 @@ from cancer.entity.config_entity import (
     TrainingConfig,
 )
 from cnnClassifier.utils.common import create_directories, read_yaml
-
+## done
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_FILE_PATH = PROJECT_ROOT / "config" / "config.yaml"
