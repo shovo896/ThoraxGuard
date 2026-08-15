@@ -141,3 +141,59 @@ stages:
       hash: md5
       md5: 6f8f1bbd39e8c378ce4ef2ace7ac7a25
       size: 59141868
+  evaluation:
+    cmd: python -m cancer.pipeline.stage_04_model_eval
+    deps:
+    - path: /Users/imac/Downloads/Chest-CT-Scan-data
+      hash: md5
+      md5: 86905059c75b48d6935a85798ec4aab2.dir
+      size: 49253579
+      nfiles: 344
+    - path: artifacts/data_manifest.json
+      hash: md5
+      md5: 7896aa4d65840d2cbe1a4fcf7b7844ed
+      size: 28604
+    - path: artifacts/training/model.keras
+      hash: md5
+      md5: 6f8f1bbd39e8c378ce4ef2ace7ac7a25
+      size: 59141868
+    - path: config/config.yaml
+      hash: md5
+      md5: 6cbb3c4b78b3622033cb8e56a0b84f60
+      size: 914
+    - path: config/configuration.py
+      hash: md5
+      md5: bda9169c00f56854817327df1e2b884b
+      size: 8357
+    - path: params.yaml
+      hash: md5
+      md5: 6e221ba5f6e8f6c950e55a8b9f7f9d90
+      size: 154
+    - path: src/cancer/components/model_evaluation.py
+      hash: md5
+      md5: 6a8739f62827960c72bcf012f5d739d1
+      size: 3522
+    - path: src/cancer/entity/config_entity.py
+      hash: md5
+      md5: 003ce067e3fbada4a1d1d0aa37f8f47d
+      size: 1413
+    - path: src/cancer/pipeline/stage_04_model_eval.py
+      hash: md5
+      md5: 2c77073860b7a2cc1c7d07bb45bd3203
+      size: 2267
+    - path: src/cnnClassifier/utils/common.py
+      hash: md5
+      md5: 4a39085b3ec00183e074f68cae724940
+      size: 3251
+    params:
+      params.yaml:
+        BATCH_SIZE: 16
+        IMAGE_SIZE:
+        - 224
+        - 224
+        - 3
+    outs:
+    - path: artifacts/evaluation/scores.json
+      hash: md5
+      md5: 7e13b418543eb4f1fd858d1ba5564bfd
+      size: 70
