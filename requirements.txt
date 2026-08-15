@@ -3,6 +3,7 @@ pandas
 gdown
 dvc
 mlflow==2.22.2
+dagshub
 cryptography>=43,<50
 protobuf<5
 notebook

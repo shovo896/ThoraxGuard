@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+import dagshub
 import mlflow
 from tensorflow import keras
 
@@ -67,20 +67,26 @@ class ModelEvaluation:
         self.config.scores_file.parent.mkdir(parents=True, exist_ok=True)
         save_json(path=self.config.scores_file, data=self.score)
 
-    def log_into_mlflow(self) -> str:
-        if urlparse(self.config.mlflow_uri).scheme in {"http", "https"}:
-            username = os.environ.get("MLFLOW_TRACKING_USERNAME")
-            password = os.environ.get("MLFLOW_TRACKING_PASSWORD")
-            if not username or not password:
-                raise EnvironmentError(
-                    "MLflow remote logging needs MLFLOW_TRACKING_USERNAME and "
-                    "MLFLOW_TRACKING_PASSWORD. Set your DagsHub username/token first."
-                )
+    def _configure_mlflow_tracking(self) -> None:
+        parsed_uri = urlparse(self.config.mlflow_uri)
 
+        if parsed_uri.netloc == "dagshub.com":
+            path_parts = parsed_uri.path.strip("/").split("/")
+            if len(path_parts) < 2:
+                raise ValueError(f"Invalid DagsHub MLflow URI: {self.config.mlflow_uri}")
+
+            repo_owner = path_parts[0]
+            repo_name = path_parts[1].removesuffix(".mlflow")
+            dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+            return
+
+        mlflow.set_tracking_uri(self.config.mlflow_uri)
+
+    def log_into_mlflow(self) -> str:
         if not hasattr(self, "model") or not hasattr(self, "score"):
             self.evaluation()
 
-        mlflow.set_tracking_uri(self.config.mlflow_uri)
+        self._configure_mlflow_tracking()
         mlflow.set_experiment("Default")
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
 
