@@ -1,7 +1,10 @@
 """Configuration entity definitions for the ThoraxGuard pipeline."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -40,4 +43,15 @@ class TrainingConfig:
     params_batch_size: int
     params_is_augmentation: bool
     params_image_size: list[int]
-    
+
+
+@dataclass(frozen=True)
+class EvaluationConfig:
+    """Configuration needed to evaluate and log the trained model."""
+
+    path_of_model: Path
+    training_data: Path
+    all_params: dict[str, Any]
+    mlflow_uri: str
+    params_image_size: list[int]
+    params_batch_size: int
