@@ -33,3 +33,53 @@ stages:
       hash: md5
       md5: 7896aa4d65840d2cbe1a4fcf7b7844ed
       size: 28604
+  prepare_base_model:
+    cmd: python -m cancer.pipeline.stage_02_prepare_basemodel
+    deps:
+    - path: config/config.yaml
+      hash: md5
+      md5: 6cbb3c4b78b3622033cb8e56a0b84f60
+      size: 914
+    - path: config/configuration.py
+      hash: md5
+      md5: bda9169c00f56854817327df1e2b884b
+      size: 8357
+    - path: params.yaml
+      hash: md5
+      md5: 6e221ba5f6e8f6c950e55a8b9f7f9d90
+      size: 154
+    - path: src/cancer/components/prepare_base_model.py
+      hash: md5
+      md5: 776cddc6182800507e0b844b4319e481
+      size: 2172
+    - path: src/cancer/entity/config_entity.py
+      hash: md5
+      md5: 003ce067e3fbada4a1d1d0aa37f8f47d
+      size: 1413
+    - path: src/cancer/pipeline/stage_02_prepare_basemodel.py
+      hash: md5
+      md5: 83763a75e0c365ada9fee0a9690082a4
+      size: 1480
+    - path: src/cnnClassifier/utils/common.py
+      hash: md5
+      md5: 4a39085b3ec00183e074f68cae724940
+      size: 3251
+    params:
+      params.yaml:
+        CLASSES: 2
+        IMAGE_SIZE:
+        - 224
+        - 224
+        - 3
+        INCLUDE_TOP: false
+        LEARNING_RATE: 0.01
+        WEIGHTS: imagenet
+    outs:
+    - path: artifacts/prepare_base_model/base_model.keras
+      hash: md5
+      md5: 650b05393891606350697c068e231728
+      size: 58931815
+    - path: artifacts/prepare_base_model/base_model_updated.keras
+      hash: md5
+      md5: 9aa5d41842e8e5bff3121744de235418
+      size: 59142476
